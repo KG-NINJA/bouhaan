@@ -14,6 +14,35 @@
     pipWrap: document.querySelector('.pip-wrap'),
   };
 
+  function ensureVideoAttributes(v) {
+    if (!v) return;
+    try {
+      v.setAttribute('playsinline', 'true');
+      v.playsInline = true;
+      v.muted = true;
+    } catch {}
+  }
+
+  async function safePlay(v) {
+    if (!v) return;
+    try {
+      await v.play();
+    } catch (e) {
+      // Some mobile browsers require user gesture; we already are in a gesture for start.
+      // If still failing, ignore.
+      console.warn('video.play() failed', e);
+    }
+  }
+
+  function updatePipVisibility() {
+    if (!els.pipWrap) return;
+    if (state.dualSupported) {
+      els.pipWrap.classList.remove('hidden');
+    } else {
+      els.pipWrap.classList.add('hidden');
+    }
+  }
+
   const state = {
     frontStream: null,
     backStream: null,
@@ -64,6 +93,31 @@
     return facing === 'user' ? cams[0].deviceId : (cams[cams.length - 1].deviceId);
   }
 
+  async function waitForVideoRender(videoEl, timeoutMs = 1800) {
+    return new Promise((resolve) => {
+      let done = false;
+      const clearAll = () => {
+        done = true;
+        videoEl.removeEventListener('loadedmetadata', onOk);
+        videoEl.removeEventListener('canplay', onOk);
+      };
+      const onOk = () => {
+        if (done) return;
+        if ((videoEl.videoWidth || 0) > 0 && (videoEl.videoHeight || 0) > 0) {
+          clearAll();
+          resolve(true);
+        }
+      };
+      videoEl.addEventListener('loadedmetadata', onOk);
+      videoEl.addEventListener('canplay', onOk);
+      const t = setTimeout(() => {
+        if (done) return;
+        clearAll();
+        resolve(false);
+      }, timeoutMs);
+    });
+  }
+
   async function tryStartDual() {
     // Attempt to open two streams simultaneously; many mobile browsers restrict this.
     try {
@@ -78,18 +132,50 @@
       const frontId = await getFacingDeviceId('user');
       const backId = await getFacingDeviceId('environment');
 
-      const common = { width: { ideal: 720 }, height: { ideal: 1280 } };
+      // Open back (main) first with higher res, then front (PiP) lighter to reduce conflicts
+      const backCommon = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } };
+      const frontLight = { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 24 } };
 
-      // Prefer deviceId if available; otherwise use facingMode without exact to allow flexibility
-      const frontConstraints = frontId
-        ? { ...common, deviceId: { exact: frontId } }
-        : { ...common, facingMode: 'user' };
-      const backConstraints = backId
-        ? { ...common, deviceId: { exact: backId } }
-        : { ...common, facingMode: 'environment' };
+      let backConstraints = backId
+        ? { ...backCommon, deviceId: { exact: backId } }
+        : { ...backCommon, facingMode: 'environment' };
+      let frontConstraints = frontId
+        ? { ...frontLight, deviceId: { exact: frontId } }
+        : { ...frontLight, facingMode: 'user' };
 
-      const frontStream = await navigator.mediaDevices.getUserMedia({ video: frontConstraints, audio: false });
       const backStream = await navigator.mediaDevices.getUserMedia({ video: backConstraints, audio: false });
+      ensureVideoAttributes(els.backVideo);
+      els.backVideo.srcObject = backStream;
+      await safePlay(els.backVideo);
+
+      // Try front
+      let frontStream;
+      try {
+        frontStream = await navigator.mediaDevices.getUserMedia({ video: frontConstraints, audio: false });
+      } catch (e1) {
+        // Retry with exact facingMode as a fallback
+        try {
+          frontConstraints = { ...frontLight, facingMode: { exact: 'user' } };
+          frontStream = await navigator.mediaDevices.getUserMedia({ video: frontConstraints, audio: false });
+        } catch (e2) {
+          // Could not open front; cleanup and fail dual
+          backStream.getTracks().forEach(t => t.stop());
+          throw e2;
+        }
+      }
+
+      ensureVideoAttributes(els.frontVideo);
+      els.frontVideo.srcObject = frontStream;
+      await safePlay(els.frontVideo);
+
+      // Validate that PiP actually renders; if not, treat as failure
+      const okMain = await waitForVideoRender(els.backVideo);
+      const okPip = await waitForVideoRender(els.frontVideo);
+      if (!okMain || !okPip) {
+        backStream.getTracks().forEach(t => t.stop());
+        frontStream.getTracks().forEach(t => t.stop());
+        throw new Error('Video did not render');
+      }
 
       // Map streams: back -> main, front -> PiP
       els.backVideo.srcObject = backStream;
@@ -101,6 +187,7 @@
 
       els.switchBtn.disabled = true;
       setStatus('前後カメラを同時に起動しました（前方は右下に表示）。');
+      updatePipVisibility();
       return true;
     } catch (e) {
       console.warn('Dual-camera failed; falling back to single', e);
@@ -126,15 +213,21 @@
       state.singleStream = stream;
       // Show stream in both videos but emphasize the active one
       if (facing === 'user') {
+        ensureVideoAttributes(els.frontVideo);
         els.frontVideo.srcObject = stream;
         els.backVideo.srcObject = null;
+        await safePlay(els.frontVideo);
         highlightCard('front');
       } else {
+        ensureVideoAttributes(els.backVideo);
         els.backVideo.srcObject = stream;
         els.frontVideo.srcObject = null;
+        await safePlay(els.backVideo);
         highlightCard('back');
       }
       els.switchBtn.disabled = false;
+      state.dualSupported = false;
+      updatePipVisibility();
       setStatus(`単一カメラモード: ${facing === 'user' ? '前面' : '背面'}`);
     } catch (e) {
       console.error('startSingle error', e);
@@ -188,6 +281,8 @@
     els.stopBtn.disabled = true;
     els.switchBtn.disabled = true;
     cleanupWakeLock();
+    state.dualSupported = false;
+    updatePipVisibility();
     setStatus('停止しました。');
   }
 
