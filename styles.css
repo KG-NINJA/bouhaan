@@ -1,0 +1,141 @@
+:root {
+  --bg: #0b132b;
+  --bg-soft: #1c2541;
+  --card: #243b55;
+  --text: #e0e6f1;
+  --muted: #9fb3c8;
+  --primary: #4cc9f0;
+  --danger: #ef476f;
+  --success: #06d6a0;
+  --shadow: rgba(0,0,0,0.35);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  background: linear-gradient(180deg, var(--bg) 0%, #0f1b33 100%);
+  color: var(--text);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  background: rgba(12, 20, 43, 0.7);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 16px;
+  z-index: 10;
+}
+.app-header h1 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
+
+.container {
+  padding: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 720px) {
+  .video-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.video-card {
+  background: linear-gradient(180deg, var(--card), #1c3050);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 10px 20px var(--shadow);
+}
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 6px 6px 6px;
+}
+video {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background: #000;
+  border-radius: 10px;
+  display: block;
+  object-fit: cover;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.controls .btn:nth-child(3) { grid-column: span 2; }
+
+.btn {
+  appearance: none;
+  border: none;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text);
+  background: #233554;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+.btn:disabled { opacity: 0.5; }
+.btn.primary { background: linear-gradient(180deg, #2a6f97, #205375); }
+.btn.danger { background: linear-gradient(180deg, #d9376e, #b5179e); }
+
+.status {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Call overlay */
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  z-index: 999;
+}
+.hidden { display: none; }
+
+.call-card {
+  width: min(460px, 92vw);
+  background: linear-gradient(180deg, #0e1a2b, #12243e);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  box-shadow: 0 15px 30px var(--shadow);
+  padding: 18px;
+}
+.call-header {
+  text-align: center;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.caller-info { display: flex; align-items: center; gap: 12px; padding: 14px 0 18px; }
+.avatar {
+  width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 28px;
+  background: #1f2e4a;
+}
+.caller-text .name { font-weight: 800; }
+.caller-text .sub { color: var(--muted); font-size: 12px; }
+
+.call-actions { display: flex; justify-content: center; gap: 22px; margin-top: 10px; }
+.circle-btn {
+  width: 68px; height: 68px;
+  border-radius: 50%; border: none; font-size: 22px;
+  color: #fff;
+  box-shadow: 0 10px 24px var(--shadow);
+}
+.circle-btn.accept { background: linear-gradient(180deg, #21c58b, #0aa970); }
+.circle-btn.decline { background: linear-gradient(180deg, #ff4d6d, #c1121f); }
