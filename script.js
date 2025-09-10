@@ -11,6 +11,7 @@
     answerBtn: document.getElementById('answerBtn'),
     declineBtn: document.getElementById('declineBtn'),
     videoGrid: document.getElementById('videoGrid'),
+    pipWrap: document.querySelector('.pip-wrap'),
   };
 
   const state = {
@@ -66,29 +67,40 @@
   async function tryStartDual() {
     // Attempt to open two streams simultaneously; many mobile browsers restrict this.
     try {
+      // Prime permission to reveal device labels on some browsers (iOS/Android)
+      try {
+        const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        tmp.getTracks().forEach(t => t.stop());
+      } catch (e) {
+        // Ignore; we'll still try facingMode fallback
+      }
+
       const frontId = await getFacingDeviceId('user');
       const backId = await getFacingDeviceId('environment');
 
       const common = { width: { ideal: 720 }, height: { ideal: 1280 } };
 
-      const frontStream = await navigator.mediaDevices.getUserMedia({
-        video: frontId ? { ...common, deviceId: { exact: frontId } } : { ...common, facingMode: 'user' },
-        audio: false,
-      });
-      const backStream = await navigator.mediaDevices.getUserMedia({
-        video: backId ? { ...common, deviceId: { exact: backId } } : { ...common, facingMode: { exact: 'environment' } },
-        audio: false,
-      });
+      // Prefer deviceId if available; otherwise use facingMode without exact to allow flexibility
+      const frontConstraints = frontId
+        ? { ...common, deviceId: { exact: frontId } }
+        : { ...common, facingMode: 'user' };
+      const backConstraints = backId
+        ? { ...common, deviceId: { exact: backId } }
+        : { ...common, facingMode: 'environment' };
 
-      els.frontVideo.srcObject = frontStream;
+      const frontStream = await navigator.mediaDevices.getUserMedia({ video: frontConstraints, audio: false });
+      const backStream = await navigator.mediaDevices.getUserMedia({ video: backConstraints, audio: false });
+
+      // Map streams: back -> main, front -> PiP
       els.backVideo.srcObject = backStream;
+      els.frontVideo.srcObject = frontStream;
 
-      state.frontStream = frontStream;
       state.backStream = backStream;
+      state.frontStream = frontStream;
       state.dualSupported = true;
 
       els.switchBtn.disabled = true;
-      setStatus('前後カメラを同時に起動しました。');
+      setStatus('前後カメラを同時に起動しました（前方は右下に表示）。');
       return true;
     } catch (e) {
       console.warn('Dual-camera failed; falling back to single', e);
@@ -153,7 +165,9 @@
     // iOS / Android require user gesture to allow camera; this is called by button.
     const dualOk = await tryStartDual();
     if (!dualOk) {
+      // Fallback: show back camera as main. Inform user that同時表示は機種依存で不可の場合があります。
       await startSingle('environment');
+      setStatus('端末の制限により同時表示ができないため、背面のみ表示中。必要に応じて「カメラ切替」で前面に切替可能です。');
     }
     els.stopBtn.disabled = false;
   }
@@ -277,6 +291,23 @@
   els.switchBtn.addEventListener('click', switchCamera);
   els.stopBtn.addEventListener('click', stopAll);
   els.fakeCallBtn.addEventListener('click', startFakeCall);
+
+  // Swap main and PiP by tapping the PiP (only in dual mode)
+  els.pipWrap?.addEventListener('click', () => {
+    if (!state.dualSupported) return;
+    const mainIsBack = els.backVideo.srcObject === state.backStream;
+    if (mainIsBack) {
+      // Put front as main
+      els.backVideo.srcObject = state.frontStream;
+      els.frontVideo.srcObject = state.backStream;
+      setStatus('前方カメラをメイン表示に切替えました。');
+    } else {
+      // Put back as main
+      els.backVideo.srcObject = state.backStream;
+      els.frontVideo.srcObject = state.frontStream;
+      setStatus('後方カメラをメイン表示に切替えました。');
+    }
+  });
 
   els.answerBtn.addEventListener('click', () => {
     // Answering stops ringtone but could keep overlay for a second (simulate connect)
