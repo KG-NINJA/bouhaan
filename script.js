@@ -11,7 +11,6 @@
     answerBtn: document.getElementById('answerBtn'),
     declineBtn: document.getElementById('declineBtn'),
     videoGrid: document.getElementById('videoGrid'),
-    pipWrap: document.querySelector('.pip-wrap'),
   };
 
   function ensureVideoAttributes(v) {
@@ -31,15 +30,6 @@
       // Some mobile browsers require user gesture; we already are in a gesture for start.
       // If still failing, ignore.
       console.warn('video.play() failed', e);
-    }
-  }
-
-  function updatePipVisibility() {
-    if (!els.pipWrap) return;
-    if (state.dualSupported) {
-      els.pipWrap.classList.remove('hidden');
-    } else {
-      els.pipWrap.classList.add('hidden');
     }
   }
 
@@ -186,8 +176,7 @@
       state.dualSupported = true;
 
       els.switchBtn.disabled = true;
-      setStatus('前後カメラを同時に起動しました（前方は右下に表示）。');
-      updatePipVisibility();
+      setStatus('前後カメラを同時に起動しました。');
       return true;
     } catch (e) {
       console.warn('Dual-camera failed; falling back to single', e);
@@ -217,29 +206,19 @@
         els.frontVideo.srcObject = stream;
         els.backVideo.srcObject = null;
         await safePlay(els.frontVideo);
-        highlightCard('front');
       } else {
         ensureVideoAttributes(els.backVideo);
         els.backVideo.srcObject = stream;
         els.frontVideo.srcObject = null;
         await safePlay(els.backVideo);
-        highlightCard('back');
       }
       els.switchBtn.disabled = false;
       state.dualSupported = false;
-      updatePipVisibility();
       setStatus(`単一カメラモード: ${facing === 'user' ? '前面' : '背面'}`);
     } catch (e) {
       console.error('startSingle error', e);
       setStatus('カメラの起動に失敗しました。権限を許可し、HTTPS/localhostで開いてください。');
     }
-  }
-
-  function highlightCard(which) {
-    const cards = Array.from(document.querySelectorAll('.video-card'));
-    cards.forEach(c => c.style.outline = 'none');
-    const idx = which === 'front' ? 0 : 1;
-    cards[idx].style.outline = '2px solid rgba(76, 201, 240, 0.7)';
   }
 
   function stopStreams() {
@@ -282,7 +261,6 @@
     els.switchBtn.disabled = true;
     cleanupWakeLock();
     state.dualSupported = false;
-    updatePipVisibility();
     setStatus('停止しました。');
   }
 
@@ -386,23 +364,6 @@
   els.switchBtn.addEventListener('click', switchCamera);
   els.stopBtn.addEventListener('click', stopAll);
   els.fakeCallBtn.addEventListener('click', startFakeCall);
-
-  // Swap main and PiP by tapping the PiP (only in dual mode)
-  els.pipWrap?.addEventListener('click', () => {
-    if (!state.dualSupported) return;
-    const mainIsBack = els.backVideo.srcObject === state.backStream;
-    if (mainIsBack) {
-      // Put front as main
-      els.backVideo.srcObject = state.frontStream;
-      els.frontVideo.srcObject = state.backStream;
-      setStatus('前方カメラをメイン表示に切替えました。');
-    } else {
-      // Put back as main
-      els.backVideo.srcObject = state.backStream;
-      els.frontVideo.srcObject = state.frontStream;
-      setStatus('後方カメラをメイン表示に切替えました。');
-    }
-  });
 
   els.answerBtn.addEventListener('click', () => {
     // Answering stops ringtone but could keep overlay for a second (simulate connect)

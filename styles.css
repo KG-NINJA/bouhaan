@@ -38,36 +38,18 @@ body {
 
 .video-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-/* Single stage layout with PiP */
-.video-stage { position: relative; overflow: hidden; }
-.main-video { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 10px; }
-.pip-wrap {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 30vw;
-  max-width: 160px;
+.video-card video {
+  width: 100%;
   aspect-ratio: 9 / 16;
-  border: 2px solid rgba(255,255,255,0.6);
+  object-fit: cover;
   border-radius: 10px;
-  box-shadow: 0 6px 16px var(--shadow);
-  overflow: hidden;
-  background: #000;
-  z-index: 2;
 }
-.pip-label {
-  position: absolute;
-  top: 4px;
-  left: 6px;
-  z-index: 2;
-  font-size: 11px;
-  color: var(--muted);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+#frontVideo {
+  transform: scaleX(-1);
 }
-.pip-video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
 
 .video-card {
   background: linear-gradient(180deg, var(--card), #1c3050);
