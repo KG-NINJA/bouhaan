@@ -11,6 +11,8 @@
     answerBtn: document.getElementById('answerBtn'),
     declineBtn: document.getElementById('declineBtn'),
     videoGrid: document.getElementById('videoGrid'),
+    frontCard: document.getElementById('frontCard'),
+    backCard: document.getElementById('backCard'),
   };
 
   function ensureVideoAttributes(v) {
@@ -43,7 +45,13 @@
     ringtone: null,
     ringing: false,
     vibrationInterval: null,
+    busyStarting: false,
   };
+
+  function markActiveCard(side) {
+    els.frontCard.classList.toggle('active', side === 'front');
+    els.backCard.classList.toggle('active', side === 'back');
+  }
 
   function setStatus(msg) {
     els.status.textContent = msg;
@@ -232,6 +240,9 @@
   }
 
   async function startCameras() {
+    if (state.busyStarting) return;
+    state.busyStarting = true;
+    els.startBtn.disabled = true;
     setStatus('カメラを準備中...');
     await requestWakeLock();
     // iOS / Android require user gesture to allow camera; this is called by button.
@@ -240,14 +251,20 @@
       // Fallback: show back camera as main. Inform user that同時表示は機種依存で不可の場合があります。
       await startSingle('environment');
       setStatus('端末の制限により同時表示ができないため、背面のみ表示中。必要に応じて「カメラ切替」で前面に切替可能です。');
+      markActiveCard('back');
+    } else {
+      markActiveCard(null);
     }
     els.stopBtn.disabled = false;
+    els.startBtn.disabled = false;
+    state.busyStarting = false;
   }
 
   async function switchCamera() {
     if (state.dualSupported) return; // not needed
     const next = state.singleFacing === 'user' ? 'environment' : 'user';
     await startSingle(next);
+    markActiveCard(next === 'user' ? 'front' : 'back');
   }
 
   function cleanupWakeLock() {
@@ -259,8 +276,11 @@
     stopStreams();
     els.stopBtn.disabled = true;
     els.switchBtn.disabled = true;
+    els.startBtn.disabled = false;
     cleanupWakeLock();
     state.dualSupported = false;
+    stopFakeCall();
+    markActiveCard(null);
     setStatus('停止しました。');
   }
 
@@ -364,6 +384,13 @@
   els.switchBtn.addEventListener('click', switchCamera);
   els.stopBtn.addEventListener('click', stopAll);
   els.fakeCallBtn.addEventListener('click', startFakeCall);
+
+  els.overlay.addEventListener('click', (e) => {
+    if (e.target === els.overlay && state.ringing) {
+      stopFakeCall();
+      setStatus('着信を閉じました。');
+    }
+  });
 
   els.answerBtn.addEventListener('click', () => {
     // Answering stops ringtone but could keep overlay for a second (simulate connect)

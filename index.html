@@ -14,11 +14,11 @@
 
   <main class="container">
     <section class="video-grid" id="videoGrid">
-      <div class="video-card">
+      <div class="video-card" id="backCard">
         <div class="label">後方カメラ</div>
         <video id="backVideo" autoplay muted playsinline></video>
       </div>
-      <div class="video-card">
+      <div class="video-card" id="frontCard">
         <div class="label">前方カメラ</div>
         <video id="frontVideo" autoplay muted playsinline></video>
       </div>
@@ -32,6 +32,27 @@
     </section>
 
     <p id="status" class="status"></p>
+
+    <section class="info-grid">
+      <div class="info-card">
+        <div class="info-title">防犯チェックポイント</div>
+        <ul class="info-list">
+          <li>明るい場所・人通りの多い道を優先する。</li>
+          <li>スマホを持つ手は肩幅・周辺を映すよう少し離す。</li>
+          <li>背面カメラの映像を確認しつつ、足音や気配にも注意。</li>
+          <li>違和感を覚えたら店や施設に入り、周囲に助けを求める。</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="info-title">フェイク通話 例セリフ</div>
+        <ul class="info-list">
+          <li>「もうすぐ駅に着くよ。改札前で待っててね」</li>
+          <li>「今いる場所を共有しておくね」</li>
+          <li>「もし何かあればすぐ電話するから」</li>
+          <li>声を出せない時は画面を耳にあて、話している雰囲気を演出。</li>
+        </ul>
+      </div>
+    </section>
   </main>
 
   <!-- フェイクコールのオーバーレイ -->
