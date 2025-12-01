@@ -57,6 +57,7 @@ body {
   border-radius: 14px;
   padding: 8px;
   box-shadow: 0 10px 20px var(--shadow);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .label {
   font-size: 12px;
@@ -66,6 +67,10 @@ body {
 video {
   background: #000;
   display: block;
+}
+.video-card.active {
+  border-color: rgba(76, 201, 240, 0.8);
+  box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.35), 0 10px 24px var(--shadow);
 }
 
 .controls {
@@ -96,6 +101,31 @@ video {
   margin-top: 10px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.info-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 18px var(--shadow);
+}
+.info-title {
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+.info-list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 /* Call overlay */
